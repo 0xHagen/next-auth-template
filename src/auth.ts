@@ -10,7 +10,8 @@ import { getTwoFactorAuthenticationByUserId } from "./data/two-factor-authentica
 declare module "next-auth" {
   interface Session {
     user: {
-      role: "ADMIN" | "USER"
+      role: "ADMIN" | "USER",
+      twoFactorEnabled: boolean
     } & DefaultSession["user"]
   }
 }
@@ -56,6 +57,10 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       if (token.role && session.user) {
         session.user.role = token.role as UserRole;
       }
+      
+      if (session.user) {
+        session.user.twoFactorEnabled = token.twoFactorEnabled as boolean;
+      }
 
       return session;
     },
@@ -67,6 +72,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       if (!existingUser) return token;
 
       token.role = existingUser.role;
+      token.twoFactorEnabled = existingUser.twoFactorEnabled;
 
       return token;
     }
