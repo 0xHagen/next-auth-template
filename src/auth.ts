@@ -6,12 +6,14 @@ import authConfig from "./auth.config"
 import { getUserById } from "@/data/user"
 import { UserRole } from "@prisma/client"
 import { getTwoFactorAuthenticationByUserId } from "./data/two-factor-authentication"
+import { getAccountByUserId } from "@/data/account"
 
 declare module "next-auth" {
   interface Session {
     user: {
       role: "ADMIN" | "USER",
-      twoFactorEnabled: boolean
+      twoFactorEnabled: boolean,
+      isOAuth: boolean
     } & DefaultSession["user"]
   }
 }
@@ -62,6 +64,12 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         session.user.twoFactorEnabled = token.twoFactorEnabled as boolean;
       }
 
+      if (session.user) {
+        session.user.name = token.name || "";
+        session.user.email = token.email || "";
+        session.user.isOAuth = token.isOAuth as boolean;
+      }
+
       return session;
     },
     async jwt({ token }) {
@@ -71,6 +79,11 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
       if (!existingUser) return token;
 
+      const existingAccount = await getAccountByUserId(existingUser.id);
+
+      token.isOAuth = !!existingAccount;
+      token.name = existingUser.name;
+      token.email = existingUser.email;
       token.role = existingUser.role;
       token.twoFactorEnabled = existingUser.twoFactorEnabled;
 
